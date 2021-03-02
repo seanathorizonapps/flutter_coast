@@ -5,7 +5,12 @@ import 'coast.dart';
 /// Analogue of [Hero] but for [Coast] and [Beach]'s instead of for [Navigator] and [Route]'s. The implementation is
 /// mostly adapted for [Hero] and related classes.
 class Crab extends StatefulWidget {
-  const Crab({@required this.tag, @required this.child, this.placeholderBuilder, this.flightShuttleBuilder, Key key})
+  const Crab(
+      {@required this.tag,
+      @required this.child,
+      this.placeholderBuilder,
+      this.flightShuttleBuilder,
+      Key key})
       : super(key: key);
 
   final String tag;
@@ -27,7 +32,8 @@ class Crab extends StatefulWidget {
         assert(tag != null);
         assert(() {
           if (result.containsKey(tag)) {
-            throw FlutterError('There are multiple crabs that share the same tag within a subtree.\n'
+            throw FlutterError(
+                'There are multiple crabs that share the same tag within a subtree.\n'
                 'Within each subtree for which carbs are to be animated (typically a Beach subtree), '
                 'each Crab must have a unique non-null tag.\n'
                 'In this case, multiple carbs had the following tag: $tag\n'
@@ -76,7 +82,8 @@ class _CrabState extends State<Crab> {
   Widget build(BuildContext context) {
     if (_placeholderSize != null) {
       if (widget.placeholderBuilder == null) {
-        return SizedBox(width: _placeholderSize.width, height: _placeholderSize.height);
+        return SizedBox(
+            width: _placeholderSize.width, height: _placeholderSize.height);
       } else {
         return widget.placeholderBuilder(context, widget.child);
       }
@@ -126,19 +133,21 @@ class CrabController extends CoastObserver {
     /// In the post frame callback, we update the walk with the target rect for the Crab.
     for (final tag in fromCrabs.keys) {
       final fromShuttleBuilder = fromCrabs[tag].widget.flightShuttleBuilder;
-      final shuttleBuilder = fromShuttleBuilder ?? _defaultHeroFlightShuttleBuilder;
+      final shuttleBuilder =
+          fromShuttleBuilder ?? _defaultHeroFlightShuttleBuilder;
 
-      _walks[tag] = _CrabWalk(
-        fromCrab: fromCrabs[tag],
-        toCrab: null,
-        progress: progress,
-        overlay: overlay,
-        overlayRect: overlayRect,
-        direction: direction,
-        fromCrabContext: previousBeach.subtreeContext,
-        toCrabContext: beach.subtreeContext,
-        shuttleBuilder: shuttleBuilder,
-      )..start();
+      if (fromCrabs[tag] != null)
+        _walks[tag] = _CrabWalk(
+          fromCrab: fromCrabs[tag],
+          toCrab: null,
+          progress: progress,
+          overlay: overlay,
+          overlayRect: overlayRect,
+          direction: direction,
+          fromCrabContext: previousBeach.subtreeContext,
+          toCrabContext: beach.subtreeContext,
+          shuttleBuilder: shuttleBuilder,
+        )..start();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((Duration value) {
@@ -200,8 +209,10 @@ class _CrabWalk {
     progress.addStatusListener(_handleAnimationStatusUpdates);
 
     _crabRectTween = RectTween(
-      begin: _globalBoundingBoxFor(fromCrab.context, ancestor: fromCrabContext.findRenderObject()),
-      end: _globalBoundingBoxFor(fromCrab.context, ancestor: fromCrabContext.findRenderObject()),
+      begin: _globalBoundingBoxFor(fromCrab.context,
+          ancestor: fromCrabContext.findRenderObject()),
+      end: _globalBoundingBoxFor(fromCrab.context,
+          ancestor: fromCrabContext.findRenderObject()),
     );
 
     fromCrab.startWalk();
@@ -217,8 +228,10 @@ class _CrabWalk {
     toCrab.startWalk();
 
     _crabRectTween = RectTween(
-      begin: _globalBoundingBoxFor(fromCrab.context, ancestor: fromCrabContext.findRenderObject()),
-      end: _globalBoundingBoxFor(toCrab.context, ancestor: toCrabContext.findRenderObject()),
+      begin: _globalBoundingBoxFor(fromCrab.context,
+          ancestor: fromCrabContext.findRenderObject()),
+      end: _globalBoundingBoxFor(toCrab.context,
+          ancestor: toCrabContext.findRenderObject()),
     );
 
     _overlayEntry?.remove();
@@ -228,7 +241,8 @@ class _CrabWalk {
 
   OverlayEntry _createOverlayEntry() => OverlayEntry(
         builder: (context) {
-          final shuttle = shuttleBuilder(context, progress, direction, fromCrab.context, toCrab?.context);
+          final shuttle = shuttleBuilder(
+              context, progress, direction, fromCrab.context, toCrab?.context);
 
           return AnimatedBuilder(
             animation: progress,
@@ -253,7 +267,8 @@ class _CrabWalk {
       );
 
   void _handleAnimationStatusUpdates(AnimationStatus status) {
-    if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+    if (status == AnimationStatus.completed ||
+        status == AnimationStatus.dismissed) {
       _overlayEntry.remove();
       _overlayEntry = null;
 
@@ -266,5 +281,6 @@ class _CrabWalk {
 Rect _globalBoundingBoxFor(BuildContext context, {RenderObject ancestor}) {
   final box = context.findRenderObject() as RenderBox;
   assert(box != null && box.hasSize);
-  return MatrixUtils.transformRect(box.getTransformTo(ancestor), Offset.zero & box.size);
+  return MatrixUtils.transformRect(
+      box.getTransformTo(ancestor), Offset.zero & box.size);
 }
