@@ -1,10 +1,125 @@
 import 'dart:async';
 
+import 'package:coast/coast.dart';
 import 'package:coast/src/coast.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test_ui/flutter_test_ui.dart';
 
 void main() {
+  group('$Coast', () {
+    group('two beaches, one crab', () {
+      const startRect = Rect.fromLTWH(0, 0, 40, 40);
+      const endRect = Rect.fromLTWH(400 - 80, 400 - 80, 80, 80);
+
+      late CoastController coastController;
+
+      setUpUI((tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 400));
+
+        coastController = CoastController();
+
+        await tester.pumpWidget(MaterialApp(
+          home: Coast(
+            controller: coastController,
+            observers: [
+              CrabController(),
+            ],
+            beaches: [
+              Beach(
+                builder: (context) => Align(
+                  alignment: Alignment.topLeft,
+                  child: Crab(
+                    tag: 'crab',
+                    child: Container(color: Colors.red, width: 40, height: 40),
+                  ),
+                ),
+              ),
+              Beach(
+                builder: (context) => Align(
+                  alignment: Alignment.bottomRight,
+                  child: Crab(
+                    tag: 'crab',
+                    child: Container(color: Colors.red, width: 80, height: 80),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ));
+      });
+
+      testUI('initially at the first beach, with the crab at the starting position', (tester) async {
+        expect(coastController.beach, 0.0);
+
+        expect(
+          tester.getRect(find.byType(Container)),
+          startRect,
+        );
+      });
+
+      group('drag halfway to the second beach', () {
+        late TestGesture drag;
+
+        setUpUI((tester) async {
+          drag = await tester.startGesture(const Offset(200, 200));
+          await drag.moveBy(const Offset(-100, 0));
+          await tester.pump();
+          await drag.moveBy(const Offset(-100, 0));
+          await tester.pump();
+        });
+
+        testUI('the crab is halfway between the start and end position', (tester) async {
+          expect(coastController.beach, 0.5);
+
+          expect(
+            tester.getRect(find.byType(Container)),
+            Rect.lerp(startRect, endRect, 0.5),
+          );
+        });
+
+        group('let the coast snap to the second beach', () {
+          setUpUI((tester) async {
+            await drag.moveBy(const Offset(-100, 0));
+            await drag.up();
+            await tester.pumpAndSettle();
+          });
+
+          testUI('the crab is at the final position', (tester) async {
+            expect(coastController.beach, 1);
+
+            expect(
+              tester.getRect(find.byType(Container)),
+              endRect,
+            );
+
+            expect(find.byType(Container), findsOneWidget);
+          });
+        });
+
+        group('let the coast snap back to the first beach', () {
+          setUpUI((tester) async {
+            await drag.moveBy(const Offset(100, 0));
+            await drag.up();
+            await tester.pumpAndSettle();
+          });
+
+          testUI('the crab is at the final position', (tester) async {
+            expect(coastController.beach, 0);
+
+            expect(
+              tester.getRect(find.byType(Container)),
+              startRect,
+            );
+
+            expect(find.byType(Container), findsOneWidget);
+          });
+        });
+      });
+    });
+  });
+
   group('$CoastState', () {
     group('calculate NewSourcePage', () {
       final sut = CoastState();
@@ -38,7 +153,7 @@ void main() {
       });
 
       test('return null when offset equals sourcePage', () {
-        expect(sut.calculateNewTargetPage(offset: 3.0, newSourcePage: 3), null);
+        expect(sut.calculateNewTargetPage(offset: 3, newSourcePage: 3), null);
       });
     });
 
@@ -86,11 +201,11 @@ void main() {
       final sut = TransitionAnimation();
 
       test('should return dismissed in case value 0', () {
-        expect(sut.calculateStatus(0.0), AnimationStatus.dismissed);
+        expect(sut.calculateStatus(0), AnimationStatus.dismissed);
       });
 
       test('should return completed in case value 1', () {
-        expect(sut.calculateStatus(1.0), AnimationStatus.completed);
+        expect(sut.calculateStatus(1), AnimationStatus.completed);
       });
 
       test('should return forward in case newvalue is bigger then previous value', () {
@@ -108,8 +223,8 @@ void main() {
 
     group('Event handling', () {
       final updates = <AnimationStatus>[];
-      StreamController<AnimationStatus> animationUpdates;
-      TransitionAnimation sut;
+      late StreamController<AnimationStatus> animationUpdates;
+      late TransitionAnimation sut;
 
       setUp(() async {
         animationUpdates = StreamController<AnimationStatus>(sync: true);
